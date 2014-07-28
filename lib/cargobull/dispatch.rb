@@ -17,14 +17,15 @@ module Cargobull
     end
 
     def self.translate_action_call(action)
-      return Service.dispatch_to(action)
+      klass = Service.dispatch_to(action)
+      if klass.nil?
+        raise RuntimeError.new("Unsupported action: #{action}")
+      end
+      return klass
     end
 
     def self.call(method, action, *args)
       klass = self.translate_action_call(action)
-      if klass.nil?
-        raise RuntimeError.new("Unsupported action: #{action}")
-      end
 
       obj = klass.new(*args)
       method = self.translate_method_call(method)

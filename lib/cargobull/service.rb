@@ -1,8 +1,10 @@
 
 module Cargobull
   module Service
+    @dispatch = []
+
     def self.dispatch
-      return @dispatch || []
+      return @dispatch
     end
 
     def self.dispatch_to(action)
@@ -12,7 +14,6 @@ module Cargobull
     end
 
     def self.register(klass)
-      @dispatch ||= []
       @dispatch << klass
     end
 
@@ -21,6 +22,7 @@ module Cargobull
     end
 
     def initialize(*args)
+      @params = args.shift
     end
   end
 end
