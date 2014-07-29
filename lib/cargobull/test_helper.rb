@@ -1,3 +1,4 @@
+require 'cargobull'
 
 module Cargobull
   module TestHelper
