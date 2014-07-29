@@ -1,7 +1,7 @@
 
 module Cargobull
   module Initialize
-    @file_map = {}
+    @file_map = []
 
     def self.sanitize_file_name(file_name)
       return file_name =~ /^\.\// ? file_name : "./#{file_name}"
@@ -17,8 +17,7 @@ module Cargobull
         @file_map = ruby_files.reduce(@file_map) do |acc, f|
           camel_file = f.sub(/\.rb$/, '').camelize
           Object.autoload(camel_file, "#{d}/#{f}")
-          acc[camel_file] = "#{d}/#{f}"
-          next acc
+          acc << "#{d}/#{f}"
         end
       end
     end
@@ -27,11 +26,11 @@ module Cargobull
       file_name = sanitize_file_name(file_name)
       return unless File.file?(file_name)
       Object.autoload(klass_str, file_name)
-      @file_map[klass_str] = file_name
+      @file_map << file_name
     end
 
     def self.init_all
-      @file_map.each{ |_, file| require file }
+      @file_map.each{ |file| require file }
     end
   end
 end
