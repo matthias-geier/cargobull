@@ -1,4 +1,5 @@
 require 'cargobull/extensions/string'
+require 'cargobull/env'
 require 'cargobull/service'
 require 'cargobull/dispatch'
 require 'cargobull/rackup'
