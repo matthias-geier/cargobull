@@ -34,8 +34,13 @@ describe Cargobull::Dispatch do
       assert_equal Llama, Cargobull::Dispatch.translate_action_call('llama')
     end
 
-    it "should nil when the dispatch class does not exist" do
-      assert_nil Cargobull::Dispatch.translate_action_call('meow')
+    it "should raise when the dispatch class does not exist" do
+      begin
+        Cargobull::Dispatch.translate_action_call('meow')
+        assert false
+      rescue RuntimeError
+        assert true
+      end
     end
   end
 

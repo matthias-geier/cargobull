@@ -1,6 +1,7 @@
 gem 'minitest'
 
 require 'cargobull'
+require 'cargobull/test_helper'
 require 'minitest/autorun'
 
 path = File.dirname(__FILE__)
