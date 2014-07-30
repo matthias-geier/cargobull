@@ -5,17 +5,21 @@ module Cargobull
   end
 
   class Env
+    @dispatch_url = "/"
+    @serve_url = "/files"
+
     def self.dispatch_url
-      return @dispatch_url || '/'
+      return @dispatch_url
     end
 
     def self.dispatch_url=(url)
-      raise ArgumentError.new("Reserved url #{url}") if url =~ /^\/files(\/|$)/i
-      @dispatch_url = url.empty? || url[0] != '/' ? "/#{url}" : url
+      sanitized_url = (url || "").split('/').reject(&:empty?).first
+      @dispatch_url = sanitized_url ? "/#{sanitized_url}" : "/"
+      @serve_url = sanitized_url ? "/" : "/files"
     end
 
     def self.serve_url
-      return ['', '/'].include?(self.dispatch_url) ? '/files' : '/'
+      return @serve_url
     end
   end
 end
