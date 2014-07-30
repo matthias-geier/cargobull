@@ -5,12 +5,12 @@ module Cargobull
   end
 
   class Env
+    class << self
+      attr_reader :dispatch_url, :serve_url, :transform_out, :transform_in
+    end
+
     @dispatch_url = "/"
     @serve_url = "/files"
-
-    def self.dispatch_url
-      return @dispatch_url
-    end
 
     def self.dispatch_url=(url)
       sanitized_url = (url || "").split('/').reject(&:empty?).first
@@ -18,8 +18,12 @@ module Cargobull
       @serve_url = sanitized_url ? "/" : "/files"
     end
 
-    def self.serve_url
-      return @serve_url
+    def self.transform_out=(blk)
+      @transform_out = blk
+    end
+
+    def self.transform_in=(blk)
+      @transform_in = blk
     end
   end
 end

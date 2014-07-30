@@ -27,6 +27,9 @@ module Cargobull
     def self.call(method, action, *args)
       klass = self.translate_action_call(action)
 
+      blk = Cargobull.env.transform_in
+      args = [blk.call(*args)] if blk
+
       obj = klass.new(*args)
       method = self.translate_method_call(method)
       unless obj.respond_to?(method)
@@ -37,7 +40,8 @@ module Cargobull
     end
 
     def self.transform(data)
-      return data
+      blk = Cargobull.env.transform_out
+      return blk ? blk.call(data) : data
     end
   end
 end
