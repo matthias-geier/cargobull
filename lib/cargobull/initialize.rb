@@ -4,20 +4,19 @@ module Cargobull
     @file_map = []
 
     def self.sanitize_file_name(file_name)
-      return file_name =~ /^\.\// ? file_name : "./#{file_name}"
+      return "./#{File.basename(file_name)}"
     end
 
     def self.dir(*args)
-      sanitized_args = args.map{ |d| sanitize_file_name(d) }.
-        map{ |d| d.sub(/\/$/, '') }.
-        select{ |d| File.directory?(dir) }
+      sanitized_args = args.map{ |d| sanitize_file_name(d).sub(/\/$/, '') }.
+        select{ |d| File.directory?(d) }
 
       sanitized_args.each do |dir|
-        ruby_files = Dir.open(dir).select{ |f| f =~ /\.rb$/ }
+        ruby_files = Dir["#{dir}/*.rb"]
         @file_map = ruby_files.reduce(@file_map) do |acc, f|
-          camel_file = f.sub(/\.rb$/, '').camelize
-          Object.autoload(camel_file, "#{d}/#{f}")
-          acc << "#{d}/#{f}"
+          camel_file = f.split("/").last.sub(/\.rb$/, '').camelize
+          Object.autoload(camel_file, f)
+          acc << f
         end
       end
     end
