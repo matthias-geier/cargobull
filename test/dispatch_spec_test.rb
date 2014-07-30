@@ -10,21 +10,15 @@ describe Cargobull::Dispatch do
   describe "method translation" do
     it "should allow only restful methods" do
       [:get, :post, :put, :patch, :delete].each do |m|
-        begin
+        assert_nothing_raised do
           Cargobull::Dispatch.translate_method_call(m)
-          assert true
-        rescue RuntimeError
-          assert false
         end
       end
     end
 
     it "should not allow anything but restful method" do
-      begin
+      assert_raise RuntimeError do
         Cargobull::Dispatch.translate_method_call(:meow)
-        assert false
-      rescue RuntimeError
-        assert true
       end
     end
   end
@@ -34,12 +28,9 @@ describe Cargobull::Dispatch do
       assert_equal Llama, Cargobull::Dispatch.translate_action_call('llama')
     end
 
-    it "should raise when the dispatch class does not exist" do
-      begin
+    it "should raise when the class to dispatch to does not exist" do
+      assert_raise RuntimeError do
         Cargobull::Dispatch.translate_action_call('meow')
-        assert false
-      rescue RuntimeError
-        assert true
       end
     end
   end
