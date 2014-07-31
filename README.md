@@ -8,7 +8,7 @@ configuration to include the service in irb or any ruby application.
 
 The code and gem is published under the BSD 2-clause license.
 
-# Using cargobull
+# Usage
 
 ## Basic configuration with any rack-based server
 
@@ -75,7 +75,7 @@ becomes blue_beard, etc.).
 Putting all classes and logic into one file might not be such a good idea.
 Cargobull offers a file that is automatically loaded when found in the
 current directory: **setup.rb** which can be used to autoload and require
-files. More on naming conventions further down in the README.
+gems. More on naming conventions further down in the README.
 
 ```ruby
   # filename: config.ru
@@ -118,9 +118,28 @@ files. More on naming conventions further down in the README.
   end
 ```
 
-Running the modified **config.ru** will require the gem and with that
+Running the modified **config.ru** will load the gem and with that
 automatically run the **setup.rb** which includes the **bluebeard.rb**
 through either way shown.
+
+## Accessing incoming data
+
+Most web applications not only rely on sending data to the client, but also
+process incoming data from web forms and the like. This data (GET and POST)
+is merged into **@params** automatically and made accessible in the dispatch
+class.
+
+```ruby
+  # filename: controller/bluebeard.rb
+  class Bluebeard
+    include Cargobull::Service
+
+    def read
+      #return the POST and GET data to the caller
+      return @params
+    end
+  end
+```
 
 ## Testing and irb
 
@@ -162,3 +181,88 @@ Additionally the setup makes the environment available to irb:
 When building a ruby application the interface to the dispatcher is exposed
 through **Cargobull::Dispatch.call** which takes the RESTful method, the action
 and optional params.
+
+
+## Serving files
+
+A single page web app that calls data from a web service can either use a
+web server to distribute the files which is a bit unhandy in development,
+or you can have Cargobull serve it for you.
+
+All files available for serving are located under the folder **files**.
+THe default URL for serving is **/files/<any path>** and will by default
+attempt to find **index.html** and **index.htm** when requesting a slash.
+
+```ruby
+  # filename: setup.rb
+  Cargobull.env.dispatch_url = "/api"
+```
+
+Assuming a json dispatcher should run under a sub-path like **/api** in the
+example above, the file serve URL swaps automatically to **/**.
+
+
+# Configuration and Options
+
+## Environment options
+
+The environment is exposed through **Cargobull.env**.
+
+### dispatch_url=
+
+The option can be nil or an URL. When nil, files are served from /files
+and / dispatches. When an URL is set, files are served from / and the
+URL dispatches.
+
+### dispatch_url
+
+Retrieves the current dispatch URL.
+
+### serve_url
+
+Retrieves the current file seerve URL.
+
+### default_files=
+
+Sets the default file names. Default is both index.html and index.htm.
+This is an array.
+
+### default_files
+
+Returns the default file names as array.
+
+### transform_in=
+
+Sets a proc taking \*args as argument and expects a return that is afterwards
+transformed into an array.
+
+This feature transforms the input params before passing them into the
+dispatch class and allowing the CRUD method to access it. Can be used for
+parsing incoming JSON for example.
+
+### transform_in
+
+Returns nil or the transformation proc.
+
+### transform_out=
+
+Sets a proc taking one argument and expects a return that is afterwards
+offered to the dispatch caller.
+
+THis feature transforms the output data before passing them back to the caller.
+It can be used to transforming ruby data into JSON.
+
+### transform_out
+
+Returns nil or the transformation proc.
+
+
+# Tests
+
+Running the existing test suite for Cargobull is simple. Checkout the master,
+navigate into the git root and run:
+
+```bash
+  ruby -Ilib test/test_runner.rb
+```
+
