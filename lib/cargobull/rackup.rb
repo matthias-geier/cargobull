@@ -1,10 +1,21 @@
 
 module Cargobull
   class Rackup
-    def file(path)
+    def file(env)
+      path = env["REQUEST_PATH"]
+      path.gsub!(/\/\.+/, '')
       path.sub!(/^#{Cargobull.env.serve_url}\/?/i, '')
+      if path.empty?
+        path = Cargobull.env.default_files.detect do |f|
+          File.file?("./files/#{f}")
+        end
+      end
       path = "./files/#{path}"
-      [200, {}, File.exist?(path) ? File.open(path, File::RDONLY) : ""]
+      if File.file?(path)
+        return [200, {}, File.open(path, File::RDONLY)]
+      else
+        return [404, {}, "Not found"]
+      end
     end
 
     def dispatch(env)
@@ -18,20 +29,19 @@ module Cargobull
       return [404, {}, "Not found"]
     end
 
+    def self.routes
+      routes = [
+        [/^#{Cargobull.env.serve_url}\/?/i, :file],
+        [/^#{Cargobull.env.dispatch_url}\/?/i, :dispatch]
+      ]
+      routes.reverse! if Cargobull.env.serve_url == '/'
+      return routes.unshift([/^\/favicon/i, :file])
+    end
+
     def call(env)
       path = env["REQUEST_PATH"]
-      match_stack = [
-        [Cargobull.env.serve_url,
-          path =~ /^#{Cargobull.env.serve_url}\/?|^\/favicon/i,
-          lambda{ self.file(path) }],
-        [Cargobull.env.dispatch_url,
-          path =~ /^#{Cargobull.env.dispatch_url}\/?/i,
-          lambda{ self.dispatch(env) }]
-      ].select{ |_, hit, _| hit }
-
-      # both hit, one is a slash, so pick the other one and call it
-      match_stack.sort!{ |(p1, _, _), (p2, _, _)| p2.length <=> p1.length }
-      return match_stack.first.last.call
+      _, match_method = self.class.routes.detect{ |pattern, _| path =~ pattern }
+      return self.send(match_method, env)
     end
   end
 end

@@ -7,10 +7,12 @@ module Cargobull
   class Env
     class << self
       attr_reader :dispatch_url, :serve_url, :transform_out, :transform_in
+      attr_accessor :default_files
     end
 
     @dispatch_url = "/"
     @serve_url = "/files"
+    @default_files = ['index.html', 'index.htm']
 
     def self.dispatch_url=(url)
       sanitized_url = (url || "").split('/').reject(&:empty?).first

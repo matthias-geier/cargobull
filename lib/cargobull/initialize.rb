@@ -14,8 +14,7 @@ module Cargobull
       sanitized_args.each do |dir|
         ruby_files = Dir["#{dir}/*.rb"]
         @file_map = ruby_files.reduce(@file_map) do |acc, f|
-          camel_file = f.split("/").last.sub(/\.rb$/, '').camelize
-          Object.autoload(camel_file, f)
+          Object.autoload(File.basename(f).camelize, f)
           acc << f
         end
       end
