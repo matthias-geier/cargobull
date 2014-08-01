@@ -256,6 +256,22 @@ It can be used to transforming ruby data into JSON.
 
 Returns nil or the transformation proc.
 
+## Autoload options
+
+### Modules and classes
+
+When loading whole directories with subdirectories using
+**Cargobull::Initialize.dir** it is possible to nest classes inside modules
+as long as the modules are underscore representations of the directory path.
+
+```ruby
+  # filename: controllers/good_pirates/bluebeard.rb
+  module GoodPirates
+    class Bluebeard
+    end
+  end
+```
+
 
 # Tests
 

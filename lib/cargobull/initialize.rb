@@ -12,10 +12,18 @@ module Cargobull
         select{ |d| File.directory?(d) }
 
       sanitized_args.each do |dir|
-        ruby_files = Dir["#{dir}/*.rb"]
+        ruby_files = Dir["#{dir}/**/*.rb"]
         @file_map = ruby_files.reduce(@file_map) do |acc, f|
-          file_name = File.basename(f).sub(/\.rb$/, '')
-          Object.autoload(file_name.camelize, f)
+          file_name = f.sub(/^#{dir}\/?/, '').sub(/\.rb$/, '').camelize
+          *mods, klass_name = file_name.split('::')
+          mod = mods.reduce(Object) do |acc, mod_str|
+            unless acc.const_defined?(mod_str)
+              acc.const_set(mod_str, Module.new)
+            end
+            next acc.const_get(mod_str)
+          end
+
+          mod.autoload(klass_name, f)
           acc << f
         end
       end
