@@ -22,7 +22,7 @@ module Cargobull
     end
 
     def initialize(*args)
-      @params = args.shift
+      @params = args.shift || {}
     end
   end
 end
