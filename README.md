@@ -249,12 +249,21 @@ Returns nil or the transformation proc.
 Sets a proc taking one argument and expects a return that is afterwards
 offered to the dispatch caller.
 
-THis feature transforms the output data before passing them back to the caller.
+This feature transforms the output data before passing them back to the caller.
 It can be used to transforming ruby data into JSON.
 
 ### transform_out
 
 Returns nil or the transformation proc.
+
+### default_path=
+
+Sets the path that should be returned as default when a request for files
+is 404.
+
+### default_path
+
+Returns nil or the default path.
 
 ## Autoload options
 

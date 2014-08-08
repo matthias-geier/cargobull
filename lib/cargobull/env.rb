@@ -7,7 +7,7 @@ module Cargobull
   class Env
     class << self
       attr_reader :dispatch_url, :serve_url, :transform_out, :transform_in
-      attr_accessor :default_files
+      attr_accessor :default_files, :default_path
     end
 
     @dispatch_url = "/"

@@ -13,6 +13,9 @@ module Cargobull
       path = "./files/#{path}"
       if File.file?(path)
         return [200, {}, File.open(path, File::RDONLY)]
+      elsif Cargobull.env.default_path
+        return [200, {},
+          File.open("./files/#{Cargobull.env.default_path}", File::RDONLY)]
       else
         return [404, {}, "Not found"]
       end
