@@ -1,7 +1,12 @@
 
 module Cargobull
-  class Rackup
-    def file(env)
+  def self.runner(cargoenv=env.get)
+    cargoenv.freeze
+    ->(env){ Rackup.call(cargoenv, env) }
+  end
+
+  module Rackup
+    def self.file(env)
       path = env["REQUEST_PATH"]
       path.gsub!(/\/\.+/, '')
       path.sub!(/^#{Cargobull.env.serve_url}\/?/i, '')
@@ -21,30 +26,30 @@ module Cargobull
       end
     end
 
-    def dispatch(env)
-      req = Rack::Request.new(env)
-      action = env["REQUEST_PATH"].sub(/^#{Cargobull.env.dispatch_url}\/?/, '').
-        gsub(/\/[^\/]+/, '')
+    def self.dispatch(cargoenv, rackenv)
+      req = Rack::Request.new(rackenv)
+      action = rackenv["REQUEST_PATH"].sub(/^#{cargoenv[:dispatch_url]}\/?/, '')
       params = req.POST.merge(req.GET)
-      data = Cargobull::Dispatch.call(env["REQUEST_METHOD"], action, params)
-      return [200, {}, data]
-    rescue RuntimeError
-      return [404, {}, "Not found"]
+      return Dispatch.call(cargoenv, rackenv["REQUEST_METHOD"], action, params)
     end
 
-    def self.routes
+    def self.routes(cargoenv)
       routes = [
-        [/^#{Cargobull.env.serve_url}\/?/i, :file],
-        [/^#{Cargobull.env.dispatch_url}\/?/i, :dispatch]
+        #[/^#{cargoenv[:serve_url]}\/?/i, :file],
+        [/^#{cargoenv[:dispatch_url]}\/?/i, :dispatch]
       ]
-      routes.reverse! if Cargobull.env.serve_url == '/'
+      routes.reverse! if cargoenv[:serve_url] == '/'
       return routes.unshift([/^\/favicon/i, :file])
     end
 
-    def call(env)
-      path = env["REQUEST_PATH"]
-      _, match_method = self.class.routes.detect{ |pattern, _| path =~ pattern }
-      return self.send(match_method, env)
+    def self.call(cargoenv, rackenv)
+      path = rackenv["REQUEST_PATH"]
+      _, match_method = routes(cargoenv).detect{ |pattern, _| path =~ pattern }
+      if match_method.nil?
+        return [500, { "Content-Type" => cargoenv[:ctype] }, cargoenv[:e500] ]
+      else
+        return send(match_method, cargoenv, rackenv)
+      end
     end
   end
 end

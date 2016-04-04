@@ -4,7 +4,7 @@ module Cargobull
     @file_map = []
 
     def self.sanitize_file_name(file_name)
-      return "./#{File.basename(file_name)}"
+      "./#{File.basename(file_name)}"
     end
 
     def self.dir(*args)
@@ -13,18 +13,9 @@ module Cargobull
 
       sanitized_args.each do |dir|
         ruby_files = Dir["#{dir}/**/*.rb"]
-        @file_map = ruby_files.reduce(@file_map) do |acc, f|
-          file_name = f.sub(/^#{dir}\/?/, '').sub(/\.rb$/, '').camelize
-          *mods, klass_name = file_name.split('::')
-          mod = mods.reduce(Object) do |acc, mod_str|
-            unless acc.const_defined?(mod_str)
-              acc.const_set(mod_str, Module.new)
-            end
-            next acc.const_get(mod_str)
-          end
-
-          mod.autoload(klass_name, f)
-          acc << f
+        @file_map = ruby_files.each do |f|
+          full_klass = f.sub(/^#{dir}\/?/, '').sub(/\.rb$/, '').camelize
+          register_file(full_klass, f)
         end
       end
     end
@@ -32,8 +23,21 @@ module Cargobull
     def self.file(klass_str, file_name)
       file_name = sanitize_file_name(file_name)
       return unless File.file?(file_name)
-      Object.autoload(klass_str, file_name)
-      @file_map << file_name
+      register_file(klass_str, file_name)
+    end
+
+    def self.register_file(full_klass, fname)
+      *mods, klass_name = full_klass.split('::')
+      mod = mods.reduce(Object) do |acc, mod_str|
+        unless acc.const_defined?(mod_str)
+          acc.const_set(mod_str, Module.new)
+        end
+        next acc.const_get(mod_str)
+      end
+
+      mod.autoload(klass_name, fname)
+      @file_map << fname
+      Service.register(full_klass)
     end
 
     def self.init_all

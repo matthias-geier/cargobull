@@ -1,47 +1,48 @@
 
 module Cargobull
   module Dispatch
-    def self.translate_method_call(method)
+    def self.translate_method_call(cargoenv, method)
       return case method.to_s.downcase
-      when "get", "post"
+      when "get"
         :read
-      when "put"
+      when "post"
         :create
-      when "patch"
+      when "patch", "put"
         :update
       when "delete"
         :delete
       else
-        raise RuntimeError.new("Unsupported method: #{method}")
+        [405, { "Content-Type" => cargoenv[:ctype] }, cargoenv[:e405] ]
       end
     end
 
-    def self.translate_action_call(action)
-      klass = Service.dispatch_to(action)
-      if klass.nil?
-        raise RuntimeError.new("Unsupported action: #{action}")
-      end
-      return klass
+    def self.translate_action_call(cargoenv, action)
+      Service.dispatch_to(action) ||
+        [404, { "Content-Type" => cargoenv[:ctype] }, cargoenv[:e404] ]
     end
 
-    def self.call(method, action, *args)
-      klass = self.translate_action_call(action)
+    def self.call(cargoenv, method, action, params)
+      klass = translate_action_call(cargoenv, action)
+      return klass if klass.is_a?(Array) # break on error
+      klass = klass.constantize
 
-      blk = Cargobull.env.transform_in
-      args = [blk.call(*args)] if blk
+      method = translate_method_call(cargoenv, method)
+      return method if method.is_a?(Array) # break on error
 
-      obj = klass.new(*args)
-      method = self.translate_method_call(method)
-      unless obj.respond_to?(method)
-        raise RuntimeError.new("#{action} does not respond to #{method}")
-      end
+      blk = cargoenv[:transform_in]
+      params = blk.call(params) if blk
 
-      return self.transform(obj.send(method))
+      obj = klass.is_a?(Class) ? klass.new : klass
+
+      return obj.respond_to?(method) ?
+        transform(cargoenv, obj.send(method, params)) :
+        [404, { "Content-Type" => cargoenv[:ctype] }, cargoenv[:e404] ]
     end
 
-    def self.transform(data)
-      blk = Cargobull.env.transform_out
-      return blk ? blk.call(data) : data
+    def self.transform(cargoenv, data)
+      blk = cargoenv[:transform_out]
+      return blk ? blk.call(data) :
+        [200, { "Content-Type" => cargoenv[:ctype] }, data]
     end
   end
 end

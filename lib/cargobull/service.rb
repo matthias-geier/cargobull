@@ -8,21 +8,17 @@ module Cargobull
     end
 
     def self.dispatch_to(action)
-      return self.dispatch.detect do |klass|
-        next klass.name.underscore == action.to_s
+      return dispatch.detect do |klass_name|
+        next klass_name.underscore == action.to_s
       end
     end
 
-    def self.register(klass)
-      @dispatch << klass
+    def self.register(klass_name)
+      @dispatch << klass_name unless @dispatch.include?(klass_name)
     end
 
     def self.included(base)
-      self.register base
-    end
-
-    def initialize(*args)
-      @params = args.shift || {}
+      register(base.name)
     end
   end
 end

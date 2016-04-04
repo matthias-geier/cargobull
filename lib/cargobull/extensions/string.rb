@@ -33,24 +33,31 @@
 #
 class String
   def constantize
-    return self.to_s.split('::').reduce(Module){ |m, c| m.const_get(c) }
+    split('::').reduce(Module){ |m, c| m.const_get(c) }
+  end
+
+  def path_to_modules
+    split(/\//).map(&:capitalize).join('::')
+  end
+
+  def modules_to_path
+    sub(/:+/, '/')
   end
 
   def camelize
-    return self.to_s.split(/_/).map(&:capitalize).join.
-      split(/\//).map(&:capitalize).join('::')
+    split(/_/).map(&:capitalize).join.path_to_modules
   end
 
   def camelize!
-    self.replace(self.to_s.camelize)
+    replace(camelize)
   end
 
   def underscore
-    return self.to_s.sub(/:+/, '/').split(/([A-Z]?[^A-Z]*)/).reject(&:empty?).
+    modules_to_path.split(/([A-Z]?[^A-Z]*)/).reject(&:empty?).
       map(&:downcase).join('_').gsub(/\/_/, '/')
   end
 
   def underscore!
-    self.replace(self.to_s.underscore)
+    replace(underscore)
   end
 end

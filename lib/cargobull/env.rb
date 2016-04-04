@@ -1,31 +1,37 @@
 
 module Cargobull
   def self.env
-    return Env
+    Env
   end
 
-  class Env
-    class << self
-      attr_reader :dispatch_url, :serve_url, :transform_out, :transform_in
-      attr_accessor :default_files, :default_path
+  module Env
+    def self.get(*args)
+      update(defaults, *args)
     end
 
-    @dispatch_url = "/"
-    @serve_url = "/files"
-    @default_files = ['index.html', 'index.htm']
+    def self.update(env, *args)
+      (args.first.is_a?(Hash) ? args.first : Hash[*args]).reduce(env) do
+        |acc, (k, v)|
 
-    def self.dispatch_url=(url)
-      sanitized_url = (url || "").split('/').reject(&:empty?).first
-      @dispatch_url = sanitized_url ? "/#{sanitized_url}" : "/"
-      @serve_url = sanitized_url ? "/" : "/files"
+        acc[k.to_sym] = respond_to?(k) ? send(k, v) : v
+        next acc
+      end
     end
 
-    def self.transform_out=(blk)
-      @transform_out = blk
-    end
-
-    def self.transform_in=(blk)
-      @transform_in = blk
+    def self.defaults
+      {
+        dispatch_url: "/api",
+        serve_url: "/",
+        default_files: ["index.html", "index.htm"],
+        default_path: nil,
+        ctype: "text/plain",
+        e403: "Forbidden",
+        e404: "Not found",
+        e405: "Method not allowed",
+        e500: "Internal error",
+        transform_out: nil,
+        transform_in: nil
+      }
     end
   end
 end
