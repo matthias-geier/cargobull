@@ -7,11 +7,12 @@ require 'cargobull/rackup'
 module Cargobull
   def self.runner(cargoenv=env.get)
     ->(env) do
-      cargoenv[:rackenv] = env
-      cargoenv[:request_path] = env["REQUEST_PATH"]
-      cargoenv[:request_method] = env["REQUEST_METHOD"]
-      cargoenv.freeze
-      Rackup.call(cargoenv)
+      cenv = cargoenv.dup
+      cenv[:rackenv] = env
+      cenv[:request_path] = env["REQUEST_PATH"]
+      cenv[:request_method] = env["REQUEST_METHOD"]
+      cenv.freeze
+      Rackup.call(cenv)
     end
   end
 

@@ -23,7 +23,12 @@ module Cargobull
     def self.dispatch(env)
       req = Rack::Request.new(env[:rackenv])
       action = env[:request_path].sub(/^#{env[:dispatch_url]}\/?/, '')
-      params = req.POST.merge(req.GET)
+      params = req.GET
+      if req.content_type == "application/x-www-form-urlencoded"
+        params.merge!(req.POST)
+      else
+        params[:body] = req.body
+      end
       return Dispatch.call(env, env[:request_method], action, params)
     end
 

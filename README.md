@@ -23,29 +23,34 @@ look similar to:
   class Bluebeard
     include Cargobull::Service
 
-    # get and post requests
-    def read
+    # get requests
+    def read(params)
       return "I can get stuff"
     end
 
-    # put requests
-    def create
+    # post requests
+    def create(params)
       return "I can also create stuff"
     end
 
-    # patch requests
-    def update
+    # put and patch requests
+    def update(params)
       return "And modify stuff"
     end
 
     # delete requests
-    def delete
+    def delete(params)
       return "And finally delete stuff"
     end
   end
 
-  run Cargobull::Rackup.new
+  run Cargobull.runner
 ```
+
+The return value will automatically be wrapped into a rack-compatible
+response with the code 200 and a default content-type. Optional post
+and get parameters will be made available through an argument inside
+the CRUD method.
 
 Running this will allow these curl calls:
 
@@ -68,7 +73,8 @@ Running this will allow these curl calls:
 
 The action for the URL or internal calls (i.e. tests) is always the
 class name in underscore notation (Bluebeard becomes bluebeard, BlueBeard
-becomes blue_beard, etc.).
+becomes blue_beard, etc.) and modules are separated by slash
+(Pirate::Bluebeard becomes pirate/bluebeard).
 
 ## Using the setup file
 
@@ -80,7 +86,7 @@ gems. More on naming conventions further down in the README.
 ```ruby
   # filename: config.ru
   require 'cargobull'
-  run Cargobull::Rackup.new
+  run Cargobull.runner
 ```
 
 ```ruby
@@ -96,50 +102,53 @@ gems. More on naming conventions further down in the README.
   class Bluebeard
     include Cargobull::Service
 
-    # get and post requests
-    def read
+    def read(params)
       return "I can get stuff"
     end
 
-    # put requests
-    def create
+    def create(params)
       return "I can also create stuff"
     end
 
-    # patch requests
-    def update
+    def update(params)
       return "And modify stuff"
     end
 
-    # delete requests
-    def delete
+    def delete(params)
       return "And finally delete stuff"
     end
   end
 ```
 
 Running the modified **config.ru** will load the gem and with that
-automatically run the **setup.rb** which includes the **bluebeard.rb**
-through either way shown.
+automatically run the **setup.rb** which includes the **bluebeard.rb**.
 
 ## Accessing incoming data
 
 Most web applications not only rely on sending data to the client, but also
 process incoming data from web forms and the like. This data (GET and POST)
-is merged into **@params** automatically and made accessible in the dispatch
-class.
+is merged into **params** argument automatically and made accessible in the
+dispatch class. Please note that the **params** are passed along by rack,
+keys and values will most likely be Strings.
 
 ```ruby
   # filename: controller/bluebeard.rb
   class Bluebeard
     include Cargobull::Service
 
-    def read
-      #return the POST and GET data to the caller
-      return @params
+    # params: a hash of transmitted data
+    def read(params)
+      #return the POST or GET data to the caller
+      return params.inspect
     end
   end
 ```
+
+Incoming content types determine the processing of the form data. If the
+content type is **x-www-form-urlencoded** rack will automatically preprocess
+the data into a hash. If the content type is anything else, the body is
+stored as **body: StringIO**. The StringIO object is made available by rack
+and can be read from. The **params** will include the body via the body key.
 
 ## Testing and irb
 
@@ -153,20 +162,26 @@ too)
   require 'cargobull/test_helper'
 
   describe Bluebeard do
+    before do
+      @env = Cargobull.env.get
+    end
+
     it "should dispatch a get request" do
-      get :bluebeard, { "i could" => "hand params to it too" }
-      assert_equal "I can get stuff", response
+      get @env, :bluebeard, { "i can" => "hand params to it too" } do |r|
+        assert_equal [200, { "Content-Type" => "text/plain" },
+          "I can get stuff"], r
+      end
     end
   end
 ```
 
 The test helper will require the gem for you and provides convenience methods
 in the module **Cargobull::TestHelper** that is by default included on base.
-That means helpers (**get**, **post**, **put**, **patch**, **delete**,
-**response**) are available for every describe and after the call make the
-result from the dispatcher available to the **response** method. When
-the test framework uses classes, just include the test helper into the class
-and the methods are available.
+That means helpers (**get**, **post**, **put**, **patch**, **delete**) are
+available for every describe and after the call make the result from the
+dispatcher available to a block if available or as a return value from the
+helper call. When the test framework uses classes, just include/extend the
+test helper into the class and the methods are available.
 
 Additionally the setup makes the environment available to irb:
 
@@ -174,7 +189,8 @@ Additionally the setup makes the environment available to irb:
   irb
   irb(main):001:0> require 'cargobull'
   => true
-  irb(main):002:0> Cargobull::Dispatch.call(:get, "bluebeard", :my => :param)
+  irb(main):002:0> Cargobull::Dispatch.call(Cargobull.env.get, "GET",
+    "bluebeard", my: "param")
   => "I can get stuff"
 ```
 
@@ -204,66 +220,108 @@ example above, the file serve URL swaps automatically to **/**.
 
 # Configuration and Options
 
+A multitude of options are available through the environment and are
+usually filled with a default value. Manually setting them is possible
+but needs to happen before rack is initialized.
+
+```ruby
+  # filename: config.ru
+  require 'cargobull'
+
+  env = Cargobull::Env.update(Cargobull.env.get, :dispatch_url, "/api2",
+    :ctype, "application/json")
+  run Cargobull.runner(env)
+```
+
+or in an alternative style
+
+```ruby
+  # filename: config.ru
+  require 'cargobull'
+
+  env = Cargobull::Env.update(Cargobull.env.get,
+    { dispatch_url: "/api2", ctype: "application/json" })
+  run Cargobull.runner(env)
+```
+
+The environment is a hash and can also be updated by merge or via key.
+Be aware that the environment is frozen once it is passed into the
+runner.
+
+The environment has these default settings:
+
+```ruby
+  DEFAULTS = {
+    dispatch_url: "/api",
+    file_url: "/",
+    default_files: ["index.html", "index.htm"],
+    default_path: nil,
+    ctype: "text/plain",
+    e403: "Forbidden",
+    e404: "Not found",
+    e405: "Method not allowed",
+    e500: "Internal error",
+    transform_out: nil,
+    transform_in: nil
+  }
+```
+
 ## Environment options
 
-The environment is exposed through **Cargobull.env**.
-
-### dispatch_url=
-
-The option can be nil or an URL. When nil, files are served from /files
-and / dispatches. When an URL is set, files are served from / and the
-URL dispatches.
+The environment is exposed through **Cargobull.env.get**.
 
 ### dispatch_url
 
-Retrieves the current dispatch URL.
+The option is an URL. This is the URL prefix after which all registered
+services are available. So if your dispatch_url is "/api" and you have
+a service class called Bluebeard, the url to reach it is "/api/bluebeard".
 
 ### serve_url
 
-Retrieves the current file seerve URL.
-
-### default_files=
-
-Sets the default file names. Default is both index.html and index.htm.
-This is an array.
+The option is an URL. This is the URL prefix for dipatching plain files,
+for instance the index.html. Locally the files are stored in the project
+folder under **./files/** by convention.
 
 ### default_files
 
-Returns the default file names as array.
+Sets the default file names. Default is both index.html and index.htm.
+This is a first match array. This option is used when calling the serve_url
+without a file.
 
-### transform_in=
+### ctype
 
-Sets a proc taking \*args as argument and expects a return that is afterwards
-transformed into an array.
+This is the default content type for the rack header when dispatching errors
+and return values from the service class. Use transform_out when the service
+class should return a different content type.
 
-This feature transforms the input params before passing them into the
-dispatch class and allowing the CRUD method to access it. Can be used for
-parsing incoming JSON for example.
+### e403, e404, e405 and e500
+
+These are strings used when an error occurs inside the framework.
 
 ### transform_in
 
-Returns nil or the transformation proc.
+This proc processes incoming params. Especially useful when the payload is
+json.
 
-### transform_out=
-
-Sets a proc taking one argument and expects a return that is afterwards
-offered to the dispatch caller.
-
-This feature transforms the output data before passing them back to the caller.
-It can be used to transforming ruby data into JSON.
+As a sidenote, the proc takes all arguments passed as params into the
+**Cargobull::Dispatch.call** method. For the rack server, this is a hash.
+Other servers building on Cargobull may pass in more data.
 
 ### transform_out
 
-Returns nil or the transformation proc.
+This proc processes return data. Especially useful when the payload should
+be json, yet the service class returns ruby objects.
 
-### default_path=
-
-Sets the path that should be returned as default when a request for files
-is 404.
+Please note that the proc can either return a rack-compatible response
+as an array of 3 elements, or a simple string response, which will be
+wrapped into a successful http code with the default content type in
+the header.
 
 ### default_path
 
-Returns nil or the default path.
+Sets the path that should be returned as default when a request for files
+is 404. When building a single-page application it may be sensible to always
+return the index and let the javascript handle the routing.
 
 ## Autoload options
 
@@ -280,6 +338,9 @@ as long as the modules are underscore representations of the directory path.
     end
   end
 ```
+
+The **Cargobull::Initialize.file** alternative supports the same module
+nesting capabilities.
 
 
 # Tests

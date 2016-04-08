@@ -25,5 +25,11 @@ describe Buffalo do
       assert_equal [200, { "Content-Type" => "text/plain" }, "worked"],
         Buffalo.send(m, @env, "bow", {})
     end
+
+    it "should forward the call for #{m} to Bow and pass it into a block" do
+      Buffalo.send(m, @env, "bow", {}) do |r|
+        assert_equal [200, { "Content-Type" => "text/plain" }, "worked"], r
+      end
+    end
   end
 end
