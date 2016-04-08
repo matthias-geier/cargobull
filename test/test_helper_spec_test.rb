@@ -1,13 +1,29 @@
 class Buffalo
-  include Cargobull::TestHelper
+  extend Cargobull::TestHelper
+end
+
+class Bow
+  include Cargobull::Service
+
+  def read(p); "worked"; end
+  def create(p); "worked"; end
+  def update(p); "worked"; end
+  def delete(p); "worked"; end
 end
 
 describe Buffalo do
-  describe "test helper method exist" do
-    [:response, :get, :post, :put, :patch, :delete].each do |m|
-      it "should respond to #{m}" do
-        assert Buffalo.new.respond_to?(m)
-      end
+  before do
+    @env = Cargobull.env.get
+  end
+
+  [:get, :post, :put, :patch, :delete].each do |m|
+    it "should respond to #{m}" do
+      assert Buffalo.respond_to?(m)
+    end
+
+    it "should forward the call for #{m} to Bow" do
+      assert_equal [200, { "Content-Type" => "text/plain" }, "worked"],
+        Buffalo.send(m, @env, "bow", {})
     end
   end
 end

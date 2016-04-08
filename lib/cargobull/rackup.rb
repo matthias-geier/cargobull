@@ -1,54 +1,47 @@
 
 module Cargobull
-  def self.runner(cargoenv=env.get)
-    cargoenv.freeze
-    ->(env){ Rackup.call(cargoenv, env) }
-  end
-
   module Rackup
     def self.file(env)
-      path = env["REQUEST_PATH"]
-      path.gsub!(/\/\.+/, '')
-      path.sub!(/^#{Cargobull.env.serve_url}\/?/i, '')
+      path = env[:request_path].gsub(/\/\.+/, '').
+        sub(/^#{env[:serve_url]}\/?/i, '')
       if path.empty?
-        path = Cargobull.env.default_files.detect do |f|
+        path = env[:default_files].detect do |f|
           File.file?("./files/#{f}")
         end
       end
       path = "./files/#{path}"
       if File.file?(path)
         return [200, {}, File.open(path, File::RDONLY)]
-      elsif Cargobull.env.default_path
-        return [200, {},
-          File.open("./files/#{Cargobull.env.default_path}", File::RDONLY)]
+      elsif env[:default_path]
+        return [200, {}, File.open("./files/#{env[:default_path]}",
+          File::RDONLY)]
       else
-        return [404, {}, "Not found"]
+        return [404, { "Content-Type" => env[:ctype] }, env[:e404] ]
       end
     end
 
-    def self.dispatch(cargoenv, rackenv)
-      req = Rack::Request.new(rackenv)
-      action = rackenv["REQUEST_PATH"].sub(/^#{cargoenv[:dispatch_url]}\/?/, '')
+    def self.dispatch(env)
+      req = Rack::Request.new(env[:rackenv])
+      action = env[:request_path].sub(/^#{env[:dispatch_url]}\/?/, '')
       params = req.POST.merge(req.GET)
-      return Dispatch.call(cargoenv, rackenv["REQUEST_METHOD"], action, params)
+      return Dispatch.call(env, env[:request_method], action, params)
     end
 
-    def self.routes(cargoenv)
-      routes = [
-        #[/^#{cargoenv[:serve_url]}\/?/i, :file],
-        [/^#{cargoenv[:dispatch_url]}\/?/i, :dispatch]
-      ]
-      routes.reverse! if cargoenv[:serve_url] == '/'
+    def self.routes(env)
+      routes = [:file, :dispatch].map do |type|
+        [/^#{env["#{type}_url".to_sym]}\/?/i, type]
+      end
+      routes.reverse! if env[:file_url] == '/'
       return routes.unshift([/^\/favicon/i, :file])
     end
 
-    def self.call(cargoenv, rackenv)
-      path = rackenv["REQUEST_PATH"]
-      _, match_method = routes(cargoenv).detect{ |pattern, _| path =~ pattern }
+    def self.call(env)
+      path = env[:request_path]
+      _, match_method = routes(env).detect{ |pattern, _| path =~ pattern }
       if match_method.nil?
-        return [500, { "Content-Type" => cargoenv[:ctype] }, cargoenv[:e500] ]
+        return [500, { "Content-Type" => env[:ctype] }, env[:e500] ]
       else
-        return send(match_method, cargoenv, rackenv)
+        return send(match_method, env)
       end
     end
   end

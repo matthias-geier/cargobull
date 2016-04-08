@@ -1,61 +1,76 @@
 class Llama
   include Cargobull::Service
 
-  def read
-    return :moo
+  def read(params)
+    :moo
   end
 
-  def create
-    return @params
+  def create(params)
+    params
+  end
+end
+
+module Nested
+  class Llama
+    include Cargobull::Service
   end
 end
 
 describe Cargobull::Dispatch do
+  before do
+    @env = Cargobull.env.get
+  end
+
   describe "method translation" do
     it "should allow only restful methods" do
-      [:get, :post, :put, :patch, :delete].each do |m|
-        assert_nothing_raised do
-          Cargobull::Dispatch.translate_method_call(m)
-        end
+      ["GET", "POST", "PATCH", "PUT", "DELETE"].each do |m|
+        assert Cargobull::Dispatch.translate_method_call(@env, m).is_a?(Symbol)
       end
     end
 
     it "should not allow anything but restful method" do
-      assert_raise RuntimeError do
-        Cargobull::Dispatch.translate_method_call(:meow)
-      end
+      assert_equal [405, { "Content-Type" => @env[:ctype] }, @env[:e405] ],
+        Cargobull::Dispatch.translate_method_call(@env, "MEOW")
     end
   end
 
   describe "action translation" do
-    it "should find the proper dispatch class" do
-      assert_equal Llama, Cargobull::Dispatch.translate_action_call('llama')
+    it "should find the proper dispatch class name" do
+      assert_equal "Llama",
+        Cargobull::Dispatch.translate_action_call(@env, 'llama')
     end
 
-    it "should raise when the class to dispatch to does not exist" do
-      assert_raise RuntimeError do
-        Cargobull::Dispatch.translate_action_call('meow')
-      end
+    it "should find the proper nested dispatch class name" do
+      assert_equal "Nested::Llama",
+        Cargobull::Dispatch.translate_action_call(@env, 'nested/llama')
+    end
+
+    it "should error when the class to dispatch to does not exist" do
+      assert_equal [404, { "Content-Type" => @env[:ctype] }, @env[:e404] ],
+        Cargobull::Dispatch.translate_action_call(@env, 'meow')
     end
   end
 
   describe "call" do
     it "should call registered methods and return data" do
-      assert_equal :moo, Cargobull::Dispatch.call(:get, 'llama')
+      assert_equal [200, { "Content-Type" => "text/plain" }, :moo],
+        Cargobull::Dispatch.call(@env, "GET", 'llama', {})
     end
 
     it "should transform input data as specified in the transform block" do
-      Cargobull.env.transform_in = lambda{ |*args| { :mykey => args.first } }
-      assert_equal({ :mykey => :moo },
-        Cargobull::Dispatch.call(:put, 'llama', :moo))
-      Cargobull.env.transform_in = nil
+      @env[:transform_in] = ->(arg){ { :mykey => arg } }
+      assert_equal [200, { "Content-Type" => "text/plain" },
+        { :mykey => :moo }],
+        Cargobull::Dispatch.call(@env, "POST", 'llama', :moo)
     end
 
     it "should transform output data as specified in the transform block" do
-      Cargobull.env.transform_out = lambda{ |*args| { :mykey => args.first } }
-      assert_equal({ :mykey => :moo },
-        Cargobull::Dispatch.call(:put, 'llama', :moo))
-      Cargobull.env.transform_out = nil
+      @env[:transform_out] = ->(code=nil, headers=nil, body) do
+        { :mykey => body }
+      end
+      assert_equal [200, { "Content-Type" => "text/plain" },
+        { :mykey => :moo }],
+        Cargobull::Dispatch.call(@env, "POST", 'llama', :moo)
     end
   end
 end
