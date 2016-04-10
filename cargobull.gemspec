@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "cargobull"
-  s.version = '0.2.1'
+  s.version = '0.3.0'
   s.summary = "Multipurpose dispatcher for RESTful services"
   s.author = "Matthias Geier"
   s.homepage = "https://github.com/matthias-geier/cargobull"
