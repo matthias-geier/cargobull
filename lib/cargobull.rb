@@ -15,12 +15,6 @@ module Cargobull
       Rackup.call(cenv)
     end
   end
-
-  #def self.streamer(cargoenv=env.get)
-  #  cargoenv[:session] = {}
-  #  cargoenv.freeze
-  #  Stream.call(cargoenv)
-  #end
 end
 
 if File.exist?('./setup.rb')
