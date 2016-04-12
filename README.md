@@ -206,17 +206,11 @@ web server to distribute the files which is a bit unhandy in development,
 or you can have Cargobull serve it for you.
 
 All files available for serving are located under the folder **files**.
-THe default URL for serving is **/files/<any path>** and will by default
+The default URL for serving is **/files/<any path>** and will by default
 attempt to find **index.html** and **index.htm** when requesting a slash.
 
-```ruby
-  # filename: setup.rb
-  Cargobull.env.dispatch_url = "/api"
-```
-
-Assuming a json dispatcher should run under a sub-path like **/api** in the
-example above, the file serve URL swaps automatically to **/**.
-
+To setup the file serving prefix, use the **file_url** option in the
+environment.
 
 # Configuration and Options
 
@@ -306,6 +300,8 @@ json.
 As a sidenote, the proc takes all arguments passed as params into the
 **Cargobull::Dispatch.call** method. For the rack server, this is a hash.
 Other servers building on Cargobull may pass in more data.
+
+This method must return an array of all arguments.
 
 ### transform_out
 
