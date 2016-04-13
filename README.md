@@ -345,7 +345,8 @@ In the example folder you find a full example including a react.js-based
 comsumer of the created web service. You can run it with any rack-based
 webserver installed, for instance thin. The example has a dependency
 on **json** and **redis**, you should install both gems before trying
-to run it.
+to run it. If you do not have **cargobull** installed, uncomment the
+LOAD_PATH extension in the **config.ru**.
 
 ```bash
   git clone git@github.com:matthias-geier/cargobull
