@@ -339,6 +339,22 @@ The **Cargobull::Initialize.file** alternative supports the same module
 nesting capabilities.
 
 
+# Example
+
+In the example folder you find a full example including a react.js-based
+comsumer of the created web service. You can run it with any rack-based
+webserver installed, for instance thin.
+
+```bash
+  git clone git@github.com:matthias-geier/cargobull
+  cd cargobull/example
+  thin start
+```
+
+Navigate to the host and port of the service, usually **localhost:3000**
+in your web browser and you will be able to see the web service in action.
+
+
 # Tests
 
 Running the existing test suite for Cargobull is simple. Checkout the master,
