@@ -343,7 +343,9 @@ nesting capabilities.
 
 In the example folder you find a full example including a react.js-based
 comsumer of the created web service. You can run it with any rack-based
-webserver installed, for instance thin.
+webserver installed, for instance thin. The example has a dependency
+on **json** and **redis**, you should install both gems before trying
+to run it.
 
 ```bash
   git clone git@github.com:matthias-geier/cargobull
